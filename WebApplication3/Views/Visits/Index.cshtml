@@ -56,7 +56,6 @@
 @section Scripts {
     <script>
         $(function () {
-
             let currentPatientId = null;
 
             function loadVisits(pid) {
@@ -78,17 +77,13 @@
                     var select = $("#patientSelect").empty();
                     data.forEach(function (p, i) {
                         select.append(`<option value="${p.id}">${p.name}</option>`);
-                        if (i === 0) currentPatientId = p.id; // первый пациент = текущий
+                        if (i === 0) currentPatientId = p.id;
                     });
-                    if (currentPatientId) loadVisits(currentPatientId); // загружаем визиты сразу
+                    if (currentPatientId) loadVisits(currentPatientId);
                 });
             }
 
-            setInterval(function () {
-                if (currentPatientId) loadVisits(currentPatientId); // автообновление таблицы каждые 5 сек
-            }, 5000);
-
-            loadPatientsInitial(); // загрузка пациентов при старте страницы
+            loadPatientsInitial();
 
             $("#icdInput").autocomplete({
                 source: function (request, response) {
@@ -99,7 +94,7 @@
                 minLength: 2,
                 select: function (event, ui) {
                     $("#icdInput").val(ui.item.value);
-                    $("#icdId").val(ui.item.id); // сохраняем id МКБ-10
+                    $("#icdId").val(ui.item.id);
                     return false;
                 }
             });
@@ -107,10 +102,7 @@
             $("#btnAddVisit").click(function () {
                 $("#visitForm")[0].reset();
                 $("#icdId").val("");
-                $("#visitModal").dialog({
-                    modal: true,
-                    width: 500
-                });
+                $("#visitModal").dialog({ modal: true, width: 500 });
             });
 
             $("#visitForm").submit(function (e) {
@@ -122,7 +114,8 @@
                     headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
                     success: function () {
                         $("#visitModal").dialog("close");
-                        loadVisits(currentPatientId); // обновление после добавления
+                        currentPatientId = $("#patientSelect").val();
+                        loadVisits(currentPatientId);
                     },
                     error: function (xhr) {
                         alert("Ошибка: " + xhr.responseText);
@@ -130,6 +123,16 @@
                 });
             });
 
+            // Автообновление таблицы визитов каждые 5 секунд
+            setInterval(function () {
+                if (currentPatientId) loadVisits(currentPatientId);
+            }, 5000);
+
+            // Смена пациента в селекте
+            $("#patientSelect").change(function () {
+                currentPatientId = $(this).val();
+                loadVisits(currentPatientId);
+            });
         });
     </script>
 }

@@ -43,15 +43,14 @@
             <label>Телефон</label>
             <input name="Phone" class="form-control" maxlength="15" />
         </div>
-        <input type="hidden" name="Id" /> <!-- Скрытый для редактирования -->
+        <input type="hidden" name="Id" />
         <button type="submit" class="btn btn-primary">Сохранить</button>
     </form>
 </div>
 
 @section Scripts {
     <script>
-        $(function(){
-
+        $(function() {
             function loadPatients() {
                 $.getJSON("/Patients/List", function(data) {
                     var tbody = $("#patientsTable tbody").empty();
@@ -65,6 +64,7 @@
                             <td>
                                 <button class="btn btn-sm btn-info" onclick="showVisits('${p.id}')">Посещения</button>
                                 <button class="btn btn-sm btn-warning" onclick="editPatient('${p.id}')">Редактировать</button>
+                                <button class="btn btn-sm btn-primary" onclick="exportXml('${p.id}')">Скачать отчет</button>
                                 <button class="btn btn-sm btn-danger" onclick="deletePatient('${p.id}')">Удалить</button>
                             </td>
                         </tr>`);
@@ -74,7 +74,6 @@
 
             $("#btnAddPatient").click(function() {
                 $("#patientForm")[0].reset();
-                // Убираем Id при создании нового пациента
                 $("input[name=Id]").val("");
                 $("#patientModal").dialog({ modal:true, width:400 });
             });
@@ -88,9 +87,7 @@
                     url: url,
                     type: "POST",
                     data: $(this).serialize(),
-                    headers: {
-                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
-                    },
+                    headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
                     success: function() {
                         $("#patientModal").dialog("close");
                         loadPatients();
@@ -99,18 +96,17 @@
                 });
             });
 
-                    window.editPatient = function(id) {
-            $.getJSON("/Patients/Get?id=" + id, function(p) {
-                $("input[name=Id]").val(p.id);
-                $("input[name=LastName]").val(p.lastName);
-                $("input[name=FirstName]").val(p.firstName);
-                $("input[name=MiddleName]").val(p.middleName);
-                // Исправленная строка - убираем разделение по 'T'
-                $("input[name=BirthDate]").val(p.birthDate);
-                $("input[name=Phone]").val(p.phone);
-                $("#patientModal").dialog({ modal:true, width:400 });
-            });
-        }
+            window.editPatient = function(id) {
+                $.getJSON("/Patients/Get?id=" + id, function(p) {
+                    $("input[name=Id]").val(p.id);
+                    $("input[name=LastName]").val(p.lastName);
+                    $("input[name=FirstName]").val(p.firstName);
+                    $("input[name=MiddleName]").val(p.middleName);
+                    $("input[name=BirthDate]").val(p.birthDate);
+                    $("input[name=Phone]").val(p.phone);
+                    $("#patientModal").dialog({ modal:true, width:400 });
+                });
+            }
 
             window.deletePatient = function(id) {
                 if (!confirm("Удалить пациента?")) return;
@@ -125,6 +121,10 @@
 
             window.showVisits = function(id) {
                 window.location.href = "/Visits?patientId=" + id;
+            }
+
+            window.exportXml = function(id) {
+                window.location.href = `/Patients/ExportXml?id=${id}`;
             }
 
             loadPatients();

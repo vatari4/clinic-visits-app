@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WebApplication3.Data;
 using WebApplication3.Models;
+using System.Collections.Generic;
 
 namespace WebApplication3.Controllers
 {
@@ -15,6 +16,7 @@ namespace WebApplication3.Controllers
 
         public IActionResult Index() => View();
 
+        // Список визитов конкретного пациента
         [HttpGet]
         public async Task<IActionResult> List(Guid patientId)
         {
@@ -33,19 +35,13 @@ namespace WebApplication3.Controllers
             return Json(visits);
         }
 
+        // Создание визита
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Guid patientId, DateTime visitDate, string? icdCodeText, Guid? icdCodeId, string? description)
         {
             var patient = await _db.Patients.FindAsync(patientId);
-            if (patient == null)
-                return NotFound(new { error = "Пациент не найден" });
-
-            if (visitDate == default)
-            {
-                ModelState.AddModelError(nameof(visitDate), "Дата визита обязательна");
-                return BadRequest(ModelState);
-            }
+            if (patient == null) return NotFound();
 
             var visit = new Visit
             {
@@ -62,27 +58,28 @@ namespace WebApplication3.Controllers
             return Ok(new { id = visit.Id });
         }
 
+        // Автодополнение ICD
         [HttpGet]
-        public async Task<IActionResult> Details(Guid id)
+        public async Task<IActionResult> SearchIcd(string term)
         {
-            var visit = await _db.Visits
-                .Include(v => v.Patient)
-                .Include(v => v.IcdCode)
-                .FirstOrDefaultAsync(v => v.Id == id);
+            if (string.IsNullOrWhiteSpace(term)) return Json(new List<object>());
 
-            if (visit == null) return NotFound();
+            var codes = await _db.IcdCodes
+                .Where(c => c.Code.StartsWith(term) || c.Name.Contains(term))
+                .OrderBy(c => c.Code)
+                .Select(c => new
+                {
+                    id = c.Id,
+                    label = $"{c.Code} - {c.Name}",
+                    value = c.Code
+                })
+                .Take(10)
+                .ToListAsync();
 
-            return Json(new
-            {
-                id = visit.Id,
-                patient = $"{visit.Patient.LastName} {visit.Patient.FirstName} {visit.Patient.MiddleName}",
-                visitDate = visit.VisitDate.ToString("yyyy-MM-dd"),
-                icdCode = visit.IcdCode?.Code ?? visit.IcdCodeText,
-                icdName = visit.IcdCode?.Name,
-                description = visit.Description
-            });
+            return Json(codes);
         }
 
+        // Список пациентов для селекта
         [HttpGet]
         public async Task<IActionResult> PatientsList()
         {
@@ -93,29 +90,5 @@ namespace WebApplication3.Controllers
 
             return Json(patients);
         }
-
-        [HttpGet]
-        public async Task<IActionResult> SearchIcd(string term)
-        {
-            if (string.IsNullOrWhiteSpace(term))
-                return Json(new List<object>());
-
-            term = term.Trim();
-
-            var codes = await _db.IcdCodes
-                .Where(c => c.Code.StartsWith(term) || c.Name.Contains(term))
-                .OrderBy(c => c.Code)
-                .Select(c => new
-                {
-                    id = c.Id,                           // GUID для связи с Visit.IcdCodeId
-                    label = $"{c.Code} - {c.Name}",      // текст для автокомплита
-                    value = c.Code                        // что вставляем в input
-                })
-                .Take(10)
-                .ToListAsync();
-
-            return Json(codes);
-        }
-
     }
 }

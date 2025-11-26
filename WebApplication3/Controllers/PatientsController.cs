@@ -15,6 +15,7 @@ namespace WebApplication3.Controllers
 
         public IActionResult Index() => View();
 
+        // Список пациентов (для таблицы)
         [HttpGet]
         public async Task<IActionResult> List(string? query, string? sort, string? dir)
         {
@@ -56,6 +57,7 @@ namespace WebApplication3.Controllers
             return Json(items);
         }
 
+        // Создание пациента
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([FromForm] Patient model)
@@ -64,7 +66,6 @@ namespace WebApplication3.Controllers
 
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            // Приведение к UTC
             model.BirthDate = DateTime.SpecifyKind(model.BirthDate, DateTimeKind.Utc);
 
             _db.Patients.Add(model);
@@ -72,16 +73,15 @@ namespace WebApplication3.Controllers
             return Ok(new { id = model.Id });
         }
 
+        // Редактирование пациента
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Update([FromForm] Patient model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var existing = await _db.Patients.FindAsync(model.Id);
-            if (existing == null)
-                return NotFound();
+            if (existing == null) return NotFound();
 
             existing.LastName = model.LastName;
             existing.FirstName = model.FirstName;
@@ -93,7 +93,7 @@ namespace WebApplication3.Controllers
             return Ok();
         }
 
-
+        // Удаление пациента
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(Guid id)
@@ -106,23 +106,7 @@ namespace WebApplication3.Controllers
             return Ok();
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Visits(Guid id)
-        {
-            var visits = await _db.Visits
-                .Where(v => v.PatientId == id)
-                .OrderByDescending(v => v.VisitDate)
-                .Select(v => new
-                {
-                    id = v.Id,
-                    visitDate = v.VisitDate.ToString("yyyy-MM-dd"),
-                    icdCode = v.IcdCode != null ? v.IcdCode.Code : v.IcdCodeText,
-                    description = v.Description
-                })
-                .ToListAsync();
-
-            return Json(visits);
-        }
+        // Получить одного пациента
         [HttpGet]
         public async Task<IActionResult> Get(Guid id)
         {
@@ -140,27 +124,7 @@ namespace WebApplication3.Controllers
             });
         }
 
-            [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddVisit(Guid patientId, DateTime visitDate, string? icdCodeText, Guid? icdCodeId, string? description)
-        {
-            var p = await _db.Patients.FindAsync(patientId);
-            if (p == null) return NotFound();
-
-            var visit = new Visit
-            {
-                PatientId = patientId,
-                VisitDate = DateTime.SpecifyKind(visitDate, DateTimeKind.Utc),
-                IcdCodeId = icdCodeId,
-                IcdCodeText = icdCodeText,
-                Description = description
-            };
-
-            _db.Visits.Add(visit);
-            await _db.SaveChangesAsync();
-            return Ok(new { id = visit.Id });
-        }
-
+        // Экспорт пациента с визитами в XML
         [HttpGet]
         public async Task<IActionResult> ExportXml(Guid id)
         {
