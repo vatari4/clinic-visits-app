@@ -89,7 +89,7 @@ Pet-проект разработанный на ASP.NET Core MVC для упр�
 <img width="1092" height="238" alt="image" src="https://github.com/user-attachments/assets/a370bf64-b24a-412a-bb3f-3dfe448fe5bf" />
 
 **Модальное окно редактирования/добавления пациентов**
-<img width="388" height="385" alt="image" src="https://github.com/user-attachments/assets/bc6c0ecb-0ebd-43c5-8f29-79910e790bc7" />
+<img width="518" height="518" alt="image" src="https://github.com/user-attachments/assets/bc6c0ecb-0ebd-43c5-8f29-79910e790bc7" />
 
 **Модальное окно добавления/редактирование визитов**
-<img width="518" height="572" alt="image" src="https://github.com/user-attachments/assets/544fc8cc-408a-4bf5-8cab-7a9eea53fe7e" />
+<img width="518" height="518" alt="image" src="https://github.com/user-attachments/assets/544fc8cc-408a-4bf5-8cab-7a9eea53fe7e" />
