@@ -1,0 +1,135 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Посещения";
+}
+
+<h2>Посещения пациента</h2>
+
+<button id="btnAddVisit" class="btn btn-success mb-2">Добавить визит</button>
+
+<table class="table table-striped" id="visitsTable">
+    <thead>
+        <tr>
+            <th>Дата визита</th>
+            <th>Код МКБ-10</th>
+            <th>Описание</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<div id="visitModal" title="Добавить визит" style="display:none;">
+    <form id="visitForm">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-2">
+            <label for="patientId">Пациент</label>
+            <select name="patientId" id="patientSelect" class="form-control" required></select>
+        </div>
+
+        <div class="mb-2">
+            <label for="visitDate">Дата визита</label>
+            <input type="date" name="visitDate" class="form-control" required />
+        </div>
+
+        <div class="mb-2">
+            <label for="icdCodeText">Диагноз (МКБ-10)</label>
+            <input name="icdCodeText" id="icdInput" class="form-control" autocomplete="off" />
+            <input type="hidden" name="icdCodeId" id="icdId" />
+        </div>
+
+        <div class="mb-2">
+            <label for="description">Описание</label>
+            <textarea name="description" class="form-control"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+    </form>
+</div>
+
+<style>
+    .ui-autocomplete {
+        z-index: 2000 !important;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        $(function () {
+
+            let currentPatientId = null;
+
+            function loadVisits(pid) {
+                if (!pid) return;
+                $.getJSON("/Visits/List?patientId=" + pid, function (data) {
+                    var tbody = $("#visitsTable tbody").empty();
+                    data.forEach(function (v) {
+                        tbody.append(`<tr>
+                            <td>${v.visitDate}</td>
+                            <td>${v.icdCode ?? ""}</td>
+                            <td>${v.description ?? ""}</td>
+                        </tr>`);
+                    });
+                });
+            }
+
+            function loadPatientsInitial() {
+                $.getJSON("/Visits/PatientsList", function (data) {
+                    var select = $("#patientSelect").empty();
+                    data.forEach(function (p, i) {
+                        select.append(`<option value="${p.id}">${p.name}</option>`);
+                        if (i === 0) currentPatientId = p.id; // первый пациент = текущий
+                    });
+                    if (currentPatientId) loadVisits(currentPatientId); // загружаем визиты сразу
+                });
+            }
+
+            setInterval(function () {
+                if (currentPatientId) loadVisits(currentPatientId); // автообновление таблицы каждые 5 сек
+            }, 5000);
+
+            loadPatientsInitial(); // загрузка пациентов при старте страницы
+
+            $("#icdInput").autocomplete({
+                source: function (request, response) {
+                    $.getJSON("/Visits/SearchIcd", { term: request.term }, function (data) {
+                        response(data);
+                    });
+                },
+                minLength: 2,
+                select: function (event, ui) {
+                    $("#icdInput").val(ui.item.value);
+                    $("#icdId").val(ui.item.id); // сохраняем id МКБ-10
+                    return false;
+                }
+            });
+
+            $("#btnAddVisit").click(function () {
+                $("#visitForm")[0].reset();
+                $("#icdId").val("");
+                $("#visitModal").dialog({
+                    modal: true,
+                    width: 500
+                });
+            });
+
+            $("#visitForm").submit(function (e) {
+                e.preventDefault();
+                $.ajax({
+                    url: "/Visits/Create",
+                    type: "POST",
+                    data: $(this).serialize(),
+                    headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+                    success: function () {
+                        $("#visitModal").dialog("close");
+                        loadVisits(currentPatientId); // обновление после добавления
+                    },
+                    error: function (xhr) {
+                        alert("Ошибка: " + xhr.responseText);
+                    }
+                });
+            });
+
+        });
+    </script>
+}
